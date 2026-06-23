@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redmine Worklog Automation Tool</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #080911;
+            --card-bg: rgba(255, 255, 255, 0.02);
+            --card-border: rgba(255, 255, 255, 0.05);
+            --card-hover-border: rgba(255, 255, 255, 0.15);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --text-accent: #3b82f6;
+            --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+            --button-shadow: rgba(59, 130, 246, 0.3);
+            --success-color: #10b981;
+            --error-color: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.08) 0%, transparent 45%);
+            background-attachment: fixed;
+        }
+
+        header {
+            width: 100%;
+            max-width: 1200px;
+            padding: 40px 20px 20px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 5px;
+        }
+
+        main {
+            width: 100%;
+            max-width: 1200px;
+            padding: 0 20px 60px 20px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        @media (min-width: 900px) {
+            main {
+                grid-template-columns: 350px 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .card:hover {
+            border-color: var(--card-hover-border);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
+        }
+
+        .sidebar-section {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(to right, #ffffff, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="text"], input[type="password"], input[type="date"], textarea {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            outline: none;
+            width: 100%;
+        }
+
+        input:focus, textarea:focus {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--text-accent);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkbox-group input {
+            cursor: pointer;
+        }
+
+        .btn {
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            padding: 14px 24px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px var(--button-shadow);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--button-shadow);
+            opacity: 0.95;
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--card-hover-border);
+            box-shadow: none;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Main Panel styling */
+        .workspace {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .loader-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 50px 0;
+            gap: 20px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.05);
+            border-top: 4px solid var(--text-accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-info {
+            background: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .story-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .story-card {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .story-card:hover {
+            border-color: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .story-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .story-title input {
+            background: transparent;
+            border: none;
+            font-weight: 600;
+            color: white;
+            font-size: 1.1rem;
+            width: 80%;
+            outline: none;
+            border-bottom: 1px dashed transparent;
+            padding: 2px 5px;
+        }
+
+        .story-title input:focus {
+            border-bottom-color: var(--text-accent);
+        }
+
+        .task-list {
+            margin-left: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .task-item {
+            background: rgba(255, 255, 255, 0.01);
+            border-left: 3px solid var(--text-accent);
+            padding: 12px 18px;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .task-item-header {
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: #e5e7eb;
+            margin-bottom: 10px;
+        }
+
+        .task-item-header input {
+            background: transparent;
+            border: none;
+            color: #e5e7eb;
+            font-weight: 500;
+            font-size: 0.95rem;
+            width: 100%;
+            outline: none;
+            border-bottom: 1px dashed transparent;
+        }
+
+        .task-item-header input:focus {
+            border-bottom-color: var(--text-accent);
+        }
+
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+
+        .log-table th, .log-table td {
+            text-align: left;
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .log-table th {
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        .log-table td input[type="number"] {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            padding: 4px 8px;
+            color: white;
+            width: 60px;
+            outline: none;
+            text-align: center;
+        }
+
+        .log-table td input[type="text"] {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            padding: 4px 8px;
+            color: white;
+            width: 100%;
+            outline: none;
+        }
+
+        .log-table td input:focus {
+            border-color: var(--text-accent);
+        }
+
+        .status-logger {
+            background: #0d0f1a;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #a78bfa;
+            max-height: 250px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            display: none;
+            margin-top: 20px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+        }
+
+        .status-logger .success { color: var(--success-color); }
+        .status-logger .error { color: var(--error-color); }
+        .status-logger .info { color: #60a5fa; }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .action-footer {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            justify-content: flex-end;
+        }
+
+        .logo-glow {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--text-accent);
+            box-shadow: 0 0 10px var(--text-accent);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>Redmine Worklog Automation</h1>
+            <p>Git-Scraping & AI-Assisted Time Logging Portal</p>
+        </div>
+        <div class="logo-glow"></div>
+    </header>
+
+    <main>
+        <!-- Sidebar Setup Form -->
+        <div class="sidebar-section">
+            <div class="card">
+                <h3 class="section-title">Credentials Setup</h3>
+                <div style="margin-top: 15px;">
+                    <div class="form-group">
+                        <label for="redmine_url">Redmine URL</label>
+                        <input type="text" id="redmine_url" placeholder="https://pm.shauryatechnosoft.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="redmine_api">API Access Key</label>
+                        <input type="password" id="redmine_api" placeholder="Enter Redmine API Key">
+                    </div>
+                    <div class="form-group">
+                        <label for="project_id">Project ID</label>
+                        <input type="text" id="project_id" placeholder="8">
+                    </div>
+                    <div class="form-group">
+                        <label for="git_email">Git Author Email</label>
+                        <input type="text" id="git_email" placeholder="umesh.pawar@shauryatechnosoft.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="gemini_api">Gemini API Key</label>
+                        <input type="password" id="gemini_api" placeholder="Optional. Fallback triggers if blank.">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="section-title">Workspaces</h3>
+                <div style="margin-top: 15px;">
+                    <div class="form-group">
+                        <label for="workspaces">Scan Directories (JSON list)</label>
+                        <textarea id="workspaces" placeholder='["/absolute/path/to/repo"]'>[]</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="workspace">
+            <!-- Planner Inputs Card -->
+            <div class="card">
+                <h3 class="section-title">Log Plan Parameters</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                    <div class="form-group">
+                        <label>Git Scraping Start Date</label>
+                        <input type="date" id="scrap_start" value="2026-05-15">
+                    </div>
+                    <div class="form-group">
+                        <label>Git Scraping End Date</label>
+                        <input type="date" id="scrap_end" value="2026-06-23">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px;">
+                    <div class="form-group">
+                        <label>Logging Target Start Date</label>
+                        <input type="date" id="log_start" value="2026-05-15">
+                    </div>
+                    <div class="form-group">
+                        <label>Logging Target End Date</label>
+                        <input type="date" id="log_end" value="2026-06-23">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr; gap: 20px; margin-top: 10px;">
+                    <div class="form-group">
+                        <label>Leave Dates (comma separated YYYY-MM-DD)</label>
+                        <input type="text" id="leave_dates" value="2026-06-15, 2026-06-16">
+                    </div>
+                    <div class="form-group">
+                        <label>Half-day Dates (comma separated YYYY-MM-DD)</label>
+                        <input type="text" id="half_day_dates" value="2026-06-08">
+                    </div>
+                </div>
+
+                <div class="checkbox-group" id="saturday_toggle">
+                    <input type="checkbox" id="saturday_work" checked>
+                    <label for="saturday_work">Worked on Saturdays (Include Saturdays in logging)</label>
+                </div>
+
+                <div style="margin-top: 25px;">
+                    <button class="btn" id="btn_plan">
+                        <span>Fetch Commits & Generate Plan</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loader -->
+            <div class="loader-container" id="loader">
+                <div class="spinner"></div>
+                <p id="loader_text">Scraping git history and formatting logs...</p>
+            </div>
+
+            <!-- Preview Card -->
+            <div class="card hidden" id="preview_card">
+                <div class="preview-header">
+                    <div>
+                        <h3 class="section-title">Review & Edit Worklog Plan</h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 2px;">Verify generated tasks, dates, hours, and descriptions before publishing.</p>
+                    </div>
+                    <div>
+                        <span class="badge badge-info" id="mode_badge">AI PLAN</span>
+                    </div>
+                </div>
+
+                <div id="stories_anchor">
+                    <!-- Dynamic Stories list -->
+                </div>
+
+                <div class="status-logger" id="logger"></div>
+
+                <div class="action-footer">
+                    <button class="btn btn-secondary" id="btn_sync_done" style="max-width: 250px; display: none;">
+                        <span>Mark All Closed (100% Done)</span>
+                    </button>
+                    <button class="btn" id="btn_execute" style="max-width: 250px;">
+                        <span>Publish to Redmine</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentPlan = [];
+        let createdIssueIds = [];
+
+        document.getElementById("btn_plan").addEventListener("click", async () => {
+            const planBtn = document.getElementById("btn_plan");
+            const loader = document.getElementById("loader");
+            const previewCard = document.getElementById("preview_card");
+            
+            planBtn.disabled = true;
+            loader.style.display = "flex";
+            previewCard.classList.add("hidden");
+            document.getElementById("logger").style.display = "none";
+            document.getElementById("btn_sync_done").style.display = "none";
+            
+            try {
+                // 1. Fetch commits
+                const workspaces = JSON.parse(document.getElementById("workspaces").value);
+                const gitEmail = document.getElementById("git_email").value;
+                const scrapStart = document.getElementById("scrap_start").value;
+                const scrapEnd = document.getElementById("scrap_end").value;
+                
+                const fetchRes = await fetch("/api/fetch-commits", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        workspace_paths: workspaces,
+                        author_email: gitEmail,
+                        since_date: scrapStart,
+                        until_date: scrapEnd
+                    })
+                });
+                
+                const fetchJson = await fetchRes.json();
+                if (fetchJson.error) throw new Error(fetchJson.error);
+                
+                const commits = fetchJson.commits || [];
+                console.log("Fetched commits:", commits);
+                
+                // 2. Plan worklog
+                const geminiKey = document.getElementById("gemini_api").value;
+                const logStart = document.getElementById("log_start").value;
+                const logEnd = document.getElementById("log_end").value;
+                const leaveDates = document.getElementById("leave_dates").value.split(",").map(d => d.trim());
+                const halfDayDates = document.getElementById("half_day_dates").value.split(",").map(d => d.trim());
+                const satWork = document.getElementById("saturday_work").checked;
+                
+                const planRes = await fetch("/api/plan-worklog", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        commits: commits,
+                        gemini_api_key: geminiKey,
+                        start_date: logStart,
+                        end_date: logEnd,
+                        leave_dates: leaveDates,
+                        half_day_dates: halfDayDates,
+                        saturday_work: satWork
+                    })
+                });
+                
+                const planJson = await planRes.json();
+                if (planJson.error) throw new Error(planJson.error);
+                
+                currentPlan = planJson.plan || [];
+                document.getElementById("mode_badge").textContent = planJson.mode.toUpperCase().replace(/_/g, " ");
+                renderPreview(currentPlan);
+                previewCard.classList.remove("hidden");
+            } catch (err) {
+                alert("Error generating plan: " + err.message);
+            } finally {
+                planBtn.disabled = false;
+                loader.style.display = "none";
+            }
+        });
+
+        function renderPreview(stories) {
+            const anchor = document.getElementById("stories_anchor");
+            anchor.innerHTML = "";
+            
+            stories.forEach((story, sIdx) => {
+                const storyDiv = document.createElement("div");
+                storyDiv.className = "story-card";
+                
+                storyDiv.innerHTML = `
+                    <div class="story-title">
+                        <input type="text" value="${story.story_subject}" onchange="updateStorySubject(${sIdx}, this.value)">
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">Story #${sIdx+1}</span>
+                    </div>
+                    <div class="form-group" style="margin-top: 10px;">
+                        <label style="font-size: 0.75rem;">Description</label>
+                        <input type="text" value="${story.story_description}" onchange="updateStoryDescription(${sIdx}, this.value)" style="font-size:0.85rem; padding: 8px 12px;">
+                    </div>
+                    <div class="task-list" id="story_${sIdx}_tasks"></div>
+                `;
+                
+                anchor.appendChild(storyDiv);
+                
+                const tasksAnchor = document.getElementById(`story_${sIdx}_tasks`);
+                
+                story.tasks.forEach((task, tIdx) => {
+                    const taskDiv = document.createElement("div");
+                    taskDiv.className = "task-item";
+                    
+                    taskDiv.innerHTML = `
+                        <div class="task-item-header">
+                            <input type="text" value="${task.subject}" onchange="updateTaskSubject(${sIdx}, ${tIdx}, this.value)">
+                        </div>
+                        <table class="log-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 120px;">Date</th>
+                                    <th style="width: 80px; text-align: center;">Hours</th>
+                                    <th>Work Log Comment</th>
+                                </tr>
+                            </thead>
+                            <tbody id="story_${sIdx}_task_${tIdx}_logs"></tbody>
+                        </table>
+                    `;
+                    
+                    tasksAnchor.appendChild(taskDiv);
+                    const logsAnchor = document.getElementById(`story_${sIdx}_task_${tIdx}_logs`);
+                    
+                    task.logs.forEach((log, lIdx) => {
+                        const tr = document.createElement("tr");
+                        tr.innerHTML = `
+                            <td>${log.date}</td>
+                            <td style="text-align: center;">
+                                <input type="number" step="0.5" min="0" max="24" value="${log.hours}" onchange="updateLogHours(${sIdx}, ${tIdx}, ${lIdx}, this.value)">
+                            </td>
+                            <td>
+                                <input type="text" value="${log.comment}" onchange="updateLogComment(${sIdx}, ${tIdx}, ${lIdx}, this.value)">
+                            </td>
+                        `;
+                        logsAnchor.appendChild(tr);
+                    });
+                });
+            });
+        }
+
+        // Edit handlers
+        window.updateStorySubject = (sIdx, val) => { currentPlan[sIdx].story_subject = val; };
+        window.updateStoryDescription = (sIdx, val) => { currentPlan[sIdx].story_description = val; };
+        window.updateTaskSubject = (sIdx, tIdx, val) => { currentPlan[sIdx].tasks[tIdx].subject = val; };
+        window.updateLogHours = (sIdx, tIdx, lIdx, val) => { currentPlan[sIdx].tasks[tIdx].logs[lIdx].hours = parseFloat(val) || 0; };
+        window.updateLogComment = (sIdx, tIdx, lIdx, val) => { currentPlan[sIdx].tasks[tIdx].logs[lIdx].comment = val; };
+
+        // Execute Sync
+        document.getElementById("btn_execute").addEventListener("click", async () => {
+            const execBtn = document.getElementById("btn_execute");
+            const logger = document.getElementById("logger");
+            const redmineUrl = document.getElementById("redmine_url").value;
+            const redmineApi = document.getElementById("redmine_api").value;
+            const projectId = parseInt(document.getElementById("project_id").value) || 8;
+            
+            execBtn.disabled = true;
+            logger.style.display = "block";
+            logger.innerHTML = "";
+            logMessage("Starting sync to Redmine...", "info");
+            
+            try {
+                const res = await fetch("/api/push-redmine", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        plan: currentPlan,
+                        redmine_url: redmineUrl,
+                        redmine_api_key: redmineApi,
+                        project_id: projectId
+                    })
+                });
+                
+                const json = await res.json();
+                if (json.error) throw new Error(json.error);
+                
+                createdIssueIds = [];
+                const results = json.results || [];
+                
+                results.forEach(storyRes => {
+                    if (storyRes.status === "success") {
+                        logMessage(`Created User Story #${storyRes.story_id}: ${storyRes.story_subject}`, "success");
+                        createdIssueIds.push(storyRes.story_id);
+                        
+                        storyRes.tasks.forEach(taskRes => {
+                            if (taskRes.status === "success") {
+                                logMessage(`  └─ Created Task #${taskRes.task_id}: ${taskRes.task_subject}`, "success");
+                                createdIssueIds.push(taskRes.task_id);
+                                
+                                taskRes.logs.forEach(logRes => {
+                                    if (logRes.status === "success") {
+                                        logMessage(`     • Logged ${logRes.hours} hrs on ${logRes.date}`, "success");
+                                    } else {
+                                        logMessage(`     • Failed to log on ${logRes.date}`, "error");
+                                    }
+                                });
+                            } else {
+                                logMessage(`  └─ Failed to create Task: ${taskRes.task_subject}`, "error");
+                            }
+                        });
+                    } else {
+                        logMessage(`Failed to create User Story: ${storyRes.story}`, "error");
+                    }
+                });
+                
+                logMessage("Sync Complete!", "info");
+                
+                if (createdIssueIds.length > 0) {
+                    document.getElementById("btn_sync_done").style.display = "block";
+                }
+            } catch (err) {
+                logMessage("Sync Failed: " + err.message, "error");
+            } finally {
+                execBtn.disabled = false;
+            }
+        });
+
+        // Close all issues
+        document.getElementById("btn_sync_done").addEventListener("click", async () => {
+            const doneBtn = document.getElementById("btn_sync_done");
+            const redmineUrl = document.getElementById("redmine_url").value;
+            const redmineApi = document.getElementById("redmine_api").value;
+            
+            doneBtn.disabled = true;
+            logMessage("Updating issues to status 'Closed' (100% Done)...", "info");
+            
+            try {
+                const res = await fetch("/api/update-status", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        issue_ids: createdIssueIds,
+                        redmine_url: redmineUrl,
+                        redmine_api_key: redmineApi
+                    })
+                });
+                
+                const json = await res.json();
+                if (json.error) throw new Error(json.error);
+                
+                const updates = json.updates || [];
+                updates.forEach(upd => {
+                    if (upd.status === "success") {
+                        logMessage(`Updated Issue #${upd.issue_id} -> Closed`, "success");
+                    } else {
+                        logMessage(`Failed to update Issue #${upd.issue_id}: ${upd.error}`, "error");
+                    }
+                });
+                logMessage("All issues closed!", "info");
+            } catch (err) {
+                logMessage("Update Failed: " + err.message, "error");
+            } finally {
+                doneBtn.disabled = false;
+            }
+        });
+
+        function logMessage(text, type = "info") {
+            const logger = document.getElementById("logger");
+            const span = document.createElement("span");
+            span.className = type;
+            span.textContent = text + "\n";
+            logger.appendChild(span);
+            logger.scrollTop = logger.scrollHeight;
+        }
+
+        // Load configuration from backend dynamically on page load
+        window.addEventListener("DOMContentLoaded", async () => {
+            try {
+                const res = await fetch("/api/config");
+                const config = await res.json();
+                if (config.redmine_url) document.getElementById("redmine_url").value = config.redmine_url;
+                if (config.redmine_api_key) document.getElementById("redmine_api").value = config.redmine_api_key;
+                if (config.project_id) document.getElementById("project_id").value = config.project_id;
+                if (config.git_email) document.getElementById("git_email").value = config.git_email;
+                if (config.gemini_api_key) document.getElementById("gemini_api").value = config.gemini_api_key;
+                if (config.workspaces) {
+                    document.getElementById("workspaces").value = typeof config.workspaces === "string" 
+                        ? config.workspaces 
+                        : JSON.stringify(config.workspaces, null, 2);
+                }
+            } catch (err) {
+                console.error("Error loading backend configuration:", err);
+            }
+        });
+    </script>
+</body>
+</html>
